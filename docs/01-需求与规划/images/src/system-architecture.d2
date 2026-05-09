@@ -1,0 +1,65 @@
+direction: down
+
+title: 车企销售运营平台-组织与权限底座功能架构图 {
+  shape: text
+  style.font-size: 20
+  style.bold: true
+}
+
+系统: 车企销售运营平台 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+  style.stroke: "#6c8ebf"
+  style.bold: true
+  style.font-size: 16
+}
+
+组织与权限中心: 组织与权限中心\n（一级菜单） {
+  shape: rectangle
+  style.fill: "#dae8fc"
+  style.stroke: "#6c8ebf"
+}
+
+组织管理: 组织管理\n（二级菜单） {
+  shape: rectangle
+  style.fill: "#d5e8d4"
+  style.stroke: "#82b366"
+}
+
+员工管理: 员工管理\n（二级菜单） {
+  shape: rectangle
+  style.fill: "#d5e8d4"
+  style.stroke: "#82b366"
+}
+
+角色管理: 角色管理\n（二级菜单） {
+  shape: rectangle
+  style.fill: "#d5e8d4"
+  style.stroke: "#82b366"
+}
+
+权限策略: 权限策略\n（二级菜单） {
+  shape: rectangle
+  style.fill: "#d5e8d4"
+  style.stroke: "#82b366"
+}
+
+审计日志: 审计日志\n（二级菜单） {
+  shape: rectangle
+  style.fill: "#d5e8d4"
+  style.stroke: "#82b366"
+}
+
+组织调整: 组织调整\n（二级菜单） {
+  shape: rectangle
+  style.fill: "#d5e8d4"
+  style.stroke: "#82b366"
+}
+
+系统 -> 组织与权限中心
+组织与权限中心 -> 组织管理
+组织与权限中心 -> 员工管理
+组织与权限中心 -> 角色管理
+组织与权限中心 -> 权限策略
+组织与权限中心 -> 审计日志
+组织与权限中心 -> 组织调整

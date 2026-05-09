@@ -1,0 +1,169 @@
+direction: down
+
+start: 开始 {
+  shape: oval
+  style.fill: "#e8f5e9"
+}
+
+open: 进入组织与权限中心 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+choose: 选择操作 {
+  shape: diamond
+  style.fill: "#fff3e0"
+}
+
+org_list: 查看组织列表并筛选 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+org_add_edit: 新增或编辑组织节点 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+org_validate: 校验组织编码与上下级关系 {
+  shape: diamond
+  style.fill: "#fff3e0"
+}
+
+org_ok: 保存组织信息成功 {
+  shape: rectangle
+  style.fill: "#d5e8d4"
+}
+
+org_fail: 阻止保存并提示错误原因 {
+  shape: rectangle
+  style.fill: "#fce4ec"
+}
+
+emp_list: 查看员工列表并筛选 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+emp_add_edit: 新增或编辑员工账号 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+emp_assign: 分配组织归属与角色 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+emp_validate: 校验账号唯一性与归属一致性 {
+  shape: diamond
+  style.fill: "#fff3e0"
+}
+
+emp_ok: 保存员工账号成功 {
+  shape: rectangle
+  style.fill: "#d5e8d4"
+}
+
+emp_fail: 阻止保存并提示错误原因 {
+  shape: rectangle
+  style.fill: "#fce4ec"
+}
+
+role_list: 查看角色列表并筛选 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+role_add_edit: 新增或编辑角色 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+perm_set: 配置菜单权限与操作权限 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+scope_set: 配置数据权限范围 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+key_perm_set: 配置关键业务权限 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+role_ok: 保存角色与权限成功 {
+  shape: rectangle
+  style.fill: "#d5e8d4"
+}
+
+transfer: 发起门店划转或组织调整 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+policy_choose: 选择统计口径\n（按发生时组织/按当前组织） {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+transfer_check: 影响范围确认 {
+  shape: diamond
+  style.fill: "#fff3e0"
+}
+
+transfer_ok: 调整生效并记录调整日志 {
+  shape: rectangle
+  style.fill: "#d5e8d4"
+}
+
+audit_view: 查询审计日志并下钻 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+end: 结束 {
+  shape: oval
+  style.fill: "#e8f5e9"
+}
+
+start -> open
+open -> choose
+
+choose -> org_list: 组织管理
+org_list -> org_add_edit
+org_add_edit -> org_validate
+org_validate -> org_ok: 校验通过
+org_validate -> org_fail: 校验失败
+org_fail -> org_add_edit: 修改后重试
+org_ok -> choose
+
+choose -> emp_list: 员工管理
+emp_list -> emp_add_edit
+emp_add_edit -> emp_assign
+emp_assign -> emp_validate
+emp_validate -> emp_ok: 校验通过
+emp_validate -> emp_fail: 校验失败
+emp_fail -> emp_add_edit: 修改后重试
+emp_ok -> choose
+
+choose -> role_list: 角色管理
+role_list -> role_add_edit
+role_add_edit -> perm_set
+perm_set -> scope_set
+scope_set -> key_perm_set
+key_perm_set -> role_ok
+role_ok -> choose
+
+choose -> transfer: 组织调整
+transfer -> policy_choose
+policy_choose -> transfer_check
+transfer_check -> transfer_ok: 确认生效
+transfer_check -> choose: 取消
+transfer_ok -> choose
+
+choose -> audit_view: 审计日志
+audit_view -> end

@@ -1,0 +1,92 @@
+direction: down
+
+start: 开始 {
+  shape: oval
+  style.fill: "#e8f5e9"
+}
+
+enter: 进入组织与权限中心 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+maintain_org: 维护组织架构\n（总部/区域/经销商/门店） {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+maintain_employee: 维护员工账号\n（入职/离职/调岗） {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+maintain_role: 维护角色与权限集 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+assign_role: 为员工分配角色 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+set_scope: 配置数据权限范围\n（区域/门店/个人） {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+set_key_permission: 配置关键业务权限\n（价格/作废/调拨/退款等） {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+effect_check: 权限生效与可见性校验 {
+  shape: diamond
+  style.fill: "#fff3e0"
+}
+
+ok: 可访问并可操作授权范围内功能 {
+  shape: rectangle
+  style.fill: "#d5e8d4"
+}
+
+deny: 禁止访问或禁止操作\n提示无权限信息 {
+  shape: rectangle
+  style.fill: "#fce4ec"
+}
+
+use_business: 在业务模块中开展日常操作\n（线索/库存/销售/财务等） {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+audit: 系统记录关键操作留痕\n（操作人/时间/字段变更） {
+  shape: rectangle
+  style.fill: "#d5e8d4"
+}
+
+review: 管理员与运营复盘权限配置\n优化角色与范围 {
+  shape: rectangle
+  style.fill: "#e3f2fd"
+}
+
+end: 结束 {
+  shape: oval
+  style.fill: "#e8f5e9"
+}
+
+start -> enter
+enter -> maintain_org
+maintain_org -> maintain_employee
+maintain_employee -> maintain_role
+maintain_role -> assign_role
+assign_role -> set_scope
+set_scope -> set_key_permission
+set_key_permission -> effect_check
+effect_check -> ok: 校验通过
+effect_check -> deny: 校验不通过
+ok -> use_business
+deny -> maintain_role: 调整权限后重新校验
+use_business -> audit
+audit -> review
+review -> end

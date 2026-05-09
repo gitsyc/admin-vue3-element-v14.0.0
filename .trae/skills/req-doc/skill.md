@@ -365,8 +365,13 @@ Step 5: 替换文档中的对应章节
 ## 导出文档
 
 ```bash
-bash .claude/skills/common/export-word.sh <markdown文件路径> req-doc
+bash .trae/skills/common/export-word.sh <markdown文件路径> req-doc
 ```
+
+**说明：**
+- 使用本地 `pandoc` 生成 Word（docx）。
+- 导出样式来自本地模板文件：`.trae/skills/common/reference-docs/req-doc.docx`（可按需修改该模板以调整字体、表格样式等）。
+- 依赖环境：`pandoc`。
 
 ## 文档命名规范
 

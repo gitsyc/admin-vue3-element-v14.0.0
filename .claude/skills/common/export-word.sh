@@ -17,15 +17,6 @@ url_decode() {
 export_word() {
   local MD_FILE=$1
   local TEMPLATE=$2
-  # 从 config.json 读取 apiBaseUrl
-  local SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-  local CONFIG_FILE="$SKILL_DIR/config.json"
-  # 用 grep + sed 解析 JSON，无需 python3
-  local API_URL=$(grep -o '"apiBaseUrl"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" | sed 's/.*"apiBaseUrl"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-  if [ -z "$API_URL" ]; then
-    echo "❌ 错误: 无法从 config.json 读取 apiBaseUrl"
-    return 1
-  fi
 
   # 参数校验
   if [ -z "$MD_FILE" ] || [ -z "$TEMPLATE" ]; then
@@ -57,91 +48,59 @@ export_word() {
   local MD_FILE_ABS=$(cd "$(dirname "$MD_FILE")" && pwd)/$(basename "$MD_FILE")
   local MD_DIR=$(dirname "$MD_FILE_ABS")
   local ORIGINAL_DIR=$(pwd)
+  local SCRIPT_DIR_NAME
+  SCRIPT_DIR_NAME="$(dirname "${BASH_SOURCE[0]}")"
+  local SCRIPT_DIR
+  if [[ "$SCRIPT_DIR_NAME" = /* ]]; then
+    SCRIPT_DIR="$(cd "$SCRIPT_DIR_NAME" && pwd)"
+  else
+    SCRIPT_DIR="$(cd "$ORIGINAL_DIR/$SCRIPT_DIR_NAME" && pwd)"
+  fi
 
   echo "📂 Markdown 文件: $MD_FILE_ABS"
   echo "📂 工作目录: $MD_DIR"
 
-  # 切换到 Markdown 文件所在目录（这样相对路径的图片才能正确找到）
+  if ! command -v pandoc >/dev/null 2>&1; then
+    echo "❌ 错误: 未找到 pandoc，请先安装 pandoc"
+    cd "$ORIGINAL_DIR"
+    return 1
+  fi
+
   cd "$MD_DIR"
 
-  # 提取图片路径
-  echo "📝 正在提取图片路径..."
-  local IMAGES_LIST="/tmp/export-images-$$.txt"
-  grep -o '!\[.*\]([^)]*)' "$MD_FILE_ABS" | \
-    sed 's/!\[.*\](\(.*\))/\1/' | \
-    grep -v '^http' | \
-    grep -v '^https' | \
-    grep -v '^data:' > "$IMAGES_LIST"
+  local BASE_NAME
+  BASE_NAME=$(basename "$MD_FILE_ABS")
+  local OUTPUT_FILE="${BASE_NAME%.*}.docx"
+  local REFERENCE_DOC="$SCRIPT_DIR/reference-docs/${TEMPLATE}.docx"
+  local PANDOC_ARGS=()
+  if [ -f "$REFERENCE_DOC" ]; then
+    PANDOC_ARGS+=(--reference-doc="$REFERENCE_DOC")
+  fi
 
-  local IMAGE_COUNT=$(wc -l < "$IMAGES_LIST" | tr -d ' ')
-  echo "✅ 找到 $IMAGE_COUNT 张本地图片"
-
-  # 用数组构建 curl 参数，避免 eval + 路径含空格的问题
-  echo "📤 正在上传文档和图片..."
-  local CURL_ARGS=(-X POST "${API_URL}/api/document/export/word-with-images")
-  CURL_ARGS+=(-F "content=<$MD_FILE_ABS")
-  CURL_ARGS+=(-F "template=$TEMPLATE")
-
-  while IFS= read -r image_path; do
-    if [ -f "$image_path" ]; then
-      CURL_ARGS+=(-F "files=@$image_path;filename=$image_path")
-      echo "  ✓ $image_path"
-    else
-      echo "  ⚠️  图片不存在: $image_path"
-    fi
-  done < "$IMAGES_LIST"
-
-  CURL_ARGS+=(-J -O --progress-bar)
-
-  # 执行导出（指定固定输出文件名，避免 ls -t 取错文件）
   echo ""
   echo "🚀 开始导出..."
-  curl "${CURL_ARGS[@]}"
+  pandoc "$MD_FILE_ABS" \
+    -o "$OUTPUT_FILE" \
+    --from markdown+yaml_metadata_block \
+    --resource-path="$MD_DIR:." \
+    "${PANDOC_ARGS[@]}" \
+    --toc
 
-  # 查找最新生成的 .docx 文件
-  local OUTPUT_FILE=$(ls -t *.docx 2>/dev/null | head -1)
-
-  # 检查结果
   if [ -f "$OUTPUT_FILE" ]; then
-    # 检查文件名是否包含 URL 编码字符（%），如果有则解码
-    if [[ "$OUTPUT_FILE" == *%* ]]; then
-      echo "🔄 检测到 URL 编码的文件名，正在解码..."
-      local DECODED_FILE=$(url_decode "$OUTPUT_FILE")
-      if [ "$OUTPUT_FILE" != "$DECODED_FILE" ]; then
-        mv "$OUTPUT_FILE" "$DECODED_FILE"
-        OUTPUT_FILE="$DECODED_FILE"
-        echo "✓ 文件名已解码"
-      fi
-    fi
-
-    # 获取文件大小（跨平台兼容）
     local FILE_SIZE
-    if command -v du &> /dev/null; then
-      FILE_SIZE=$(du -h "$OUTPUT_FILE" 2>/dev/null | cut -f1)
-    else
-      FILE_SIZE=$(ls -lh "$OUTPUT_FILE" 2>/dev/null | awk '{print $5}')
-    fi
-
+    FILE_SIZE=$(du -h "$OUTPUT_FILE" 2>/dev/null | cut -f1)
     echo ""
     echo "✅ 导出成功!"
     echo "📄 文件: $OUTPUT_FILE"
     echo "📊 大小: $FILE_SIZE"
-
-    # 清理临时文件
-    rm -f "$IMAGES_LIST"
-
-    # 切回原目录
     cd "$ORIGINAL_DIR"
     return 0
-  else
-    echo ""
-    echo "❌ 导出失败，请检查日志"
-    rm -f "$IMAGES_LIST"
-
-    # 切回原目录
-    cd "$ORIGINAL_DIR"
-    return 1
   fi
+
+  echo ""
+  echo "❌ 导出失败，请检查日志"
+  cd "$ORIGINAL_DIR"
+  return 1
 }
 
 # 如果直接执行脚本（不是被 source），则调用导出函数

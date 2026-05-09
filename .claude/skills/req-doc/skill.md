@@ -368,6 +368,11 @@ Step 5: 替换文档中的对应章节
 bash .claude/skills/common/export-word.sh <markdown文件路径> req-doc
 ```
 
+**说明：**
+- 导出过程不依赖远程 API，使用本地 `pandoc` 生成 Word（docx）。
+- 导出样式来自本地模板文件：`.claude/skills/common/reference-docs/req-doc.docx`（可按需修改该模板以调整字体、表格样式等）。
+- 依赖环境：`pandoc`。
+
 ## 文档命名规范
 
 `docs/01-需求与规划/{日期}-{客户名称}{项目名称}-SRS需求规格说明书-V{版本号}.md`

@@ -49,3 +49,9 @@ pnpm-lock.yaml
 # Docs output
 docs/.vitepress/dist
 docs/.temp
+
+# Office temp files
+~$*
+
+# Trae editor
+.trae/

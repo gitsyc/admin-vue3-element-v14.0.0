@@ -86,6 +86,140 @@ export_word() {
     "${PANDOC_ARGS[@]}" \
     --toc
 
+  if [ -f "$OUTPUT_FILE" ] && [ "$TEMPLATE" = "req-doc" ] && command -v python3 >/dev/null 2>&1; then
+    python3 - "$MD_DIR/$OUTPUT_FILE" <<'PY'
+import sys
+import zipfile
+import xml.etree.ElementTree as ET
+import tempfile
+import os
+import shutil
+
+docx_path = sys.argv[1]
+W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+ns = {"w": W}
+ET.register_namespace("w", W)
+
+with zipfile.ZipFile(docx_path) as z:
+    names = z.namelist()
+    data = {n: z.read(n) for n in names}
+
+doc_xml = data.get("word/document.xml")
+if not doc_xml:
+    sys.exit(0)
+
+root = ET.fromstring(doc_xml)
+
+sect_prs = root.findall(".//w:sectPr", ns)
+sect_pr = sect_prs[-1] if sect_prs else None
+
+def get_int_attr(el, attr_name):
+    if el is None:
+        return None
+    v = el.get(f"{{{W}}}{attr_name}")
+    if v is None:
+        return None
+    try:
+        return int(v)
+    except ValueError:
+        return None
+
+pg_sz = sect_pr.find("w:pgSz", ns) if sect_pr is not None else None
+pg_mar = sect_pr.find("w:pgMar", ns) if sect_pr is not None else None
+
+page_w = get_int_attr(pg_sz, "w") or 11906
+mar_l = get_int_attr(pg_mar, "left") or 1440
+mar_r = get_int_attr(pg_mar, "right") or 1440
+usable_w = max(1, page_w - mar_l - mar_r)
+
+def ensure_child(parent, tag):
+    el = parent.find(f"w:{tag}", ns)
+    if el is None:
+        el = ET.SubElement(parent, f"{{{W}}}{tag}")
+    return el
+
+def get_grid_span(tc):
+    tc_pr = tc.find("w:tcPr", ns)
+    if tc_pr is None:
+        return 1
+    grid_span = tc_pr.find("w:gridSpan", ns)
+    v = get_int_attr(grid_span, "val")
+    return v if v and v > 0 else 1
+
+for tbl in root.findall(".//w:tbl", ns):
+    tbl_pr = tbl.find("w:tblPr", ns)
+    if tbl_pr is None:
+        continue
+
+    tbl_w = tbl_pr.find("w:tblW", ns)
+    if tbl_w is None:
+        tbl_w = ET.SubElement(tbl_pr, f"{{{W}}}tblW")
+    tbl_w.set(f"{{{W}}}type", "pct")
+    tbl_w.set(f"{{{W}}}w", "5000")
+
+    tbl_layout = tbl_pr.find("w:tblLayout", ns)
+    if tbl_layout is None:
+        tbl_layout = ET.SubElement(tbl_pr, f"{{{W}}}tblLayout")
+    tbl_layout.set(f"{{{W}}}type", "fixed")
+
+    tbl_grid = tbl.find("w:tblGrid", ns)
+    if tbl_grid is not None:
+        ncols = len(tbl_grid.findall("w:gridCol", ns))
+    else:
+        first_tr = tbl.find("w:tr", ns)
+        if first_tr is None:
+            continue
+        ncols = 0
+        for tc in first_tr.findall("w:tc", ns):
+            ncols += get_grid_span(tc)
+
+    if ncols <= 0:
+        continue
+
+    col_w = max(1, usable_w // ncols)
+
+    if tbl_grid is None:
+        tbl_grid = ET.Element(f"{{{W}}}tblGrid")
+        tbl.insert(0, tbl_grid)
+    else:
+        for ch in list(tbl_grid):
+            tbl_grid.remove(ch)
+
+    for _ in range(ncols):
+        gc = ET.SubElement(tbl_grid, f"{{{W}}}gridCol")
+        gc.set(f"{{{W}}}w", str(col_w))
+
+    for tr in tbl.findall("w:tr", ns):
+        col_index = 0
+        tcs = tr.findall("w:tc", ns)
+        for tc in tcs:
+            span = get_grid_span(tc)
+            width = col_w * span
+            tc_pr = ensure_child(tc, "tcPr")
+            tc_w = tc_pr.find("w:tcW", ns)
+            if tc_w is None:
+                tc_w = ET.SubElement(tc_pr, f"{{{W}}}tcW")
+            tc_w.set(f"{{{W}}}type", "dxa")
+            tc_w.set(f"{{{W}}}w", str(width))
+            col_index += span
+
+data["word/document.xml"] = ET.tostring(root, encoding="utf-8", xml_declaration=True)
+
+fd, tmp_path = tempfile.mkstemp(suffix=".docx")
+os.close(fd)
+try:
+    with zipfile.ZipFile(tmp_path, "w", compression=zipfile.ZIP_DEFLATED) as out:
+        for n in names:
+            out.writestr(n, data[n])
+    shutil.copyfile(tmp_path, docx_path)
+finally:
+    try:
+        os.remove(tmp_path)
+    except OSError:
+        pass
+PY
+  fi
+
   if [ -f "$OUTPUT_FILE" ]; then
     local FILE_SIZE
     FILE_SIZE=$(du -h "$OUTPUT_FILE" 2>/dev/null | cut -f1)
